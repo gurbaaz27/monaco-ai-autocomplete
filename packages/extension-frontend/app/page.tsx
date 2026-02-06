@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import {
   Zap,
@@ -29,6 +30,33 @@ const stagger = {
 }
 
 export default function Home() {
+  const [githubStars, setGithubStars] = useState<number | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchStars() {
+      try {
+        const repoPath = new URL(GithubUrl).pathname.replace(/^\/|\/$/g, "")
+        const res = await fetch(`https://api.github.com/repos/${repoPath}`)
+        if (!res.ok) return
+        const data = await res.json()
+
+        if (!cancelled && typeof data.stargazers_count === "number") {
+          setGithubStars(data.stargazers_count)
+        }
+      } catch {
+        // ignore errors
+      }
+    }
+
+    fetchStars()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <main className="min-h-screen bg-background noise">
       {/* Nav */}
@@ -68,9 +96,14 @@ export default function Home() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-muted-foreground"
+                  className="text-muted-foreground gap-1.5"
                 >
                   <Github className="w-4 h-4" />
+                  {githubStars !== null && (
+                    <span className="ml-0.5 text-xs text-mono text-muted-foreground/80">
+                      {githubStars.toLocaleString()}
+                    </span>
+                  )}
                 </Button>
               </a>
               <Button size="sm" className="gap-1.5 text-mono text-xs">
