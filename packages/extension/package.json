@@ -1,0 +1,35 @@
+{
+  "name": "monaco-ai-autocomplete-extension",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "wxt",
+    "build": "wxt build",
+    "zip": "wxt zip"
+  },
+  "dependencies": {
+    "@monaco-autocomplete/core": "workspace:*",
+    "@openrouter/ai-sdk-provider": "^2.1.1",
+    "ai": "^6.0.73",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.563.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^3.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/typography": "^0.5.19",
+    "@types/chrome": "^0.0.256",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@wxt-dev/module-react": "^1.1.0",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "3",
+    "typescript": "^5.3.3",
+    "wxt": "^0.19.0"
+  }
+}
