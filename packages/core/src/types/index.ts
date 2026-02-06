@@ -35,3 +35,7 @@ export interface MonacoAutocompleteConfig {
 }
 
 export type LLMClient = (request: CompletionRequest) => Promise<CompletionResponse>;
+
+// Re-export shared Monaco types so consumers can import everything from
+// "@monaco-autocomplete/core" without touching "monaco-editor" directly.
+export * from "./monaco";

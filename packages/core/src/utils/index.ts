@@ -1,4 +1,4 @@
-import type * as Monaco from "monaco-editor"
+import type { MonacoModel, MonacoPosition } from "../types"
 
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
@@ -20,8 +20,8 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 export function extractContext(
-  model: Monaco.editor.ITextModel,
-  position: Monaco.IPosition,
+  model: MonacoModel,
+  position: MonacoPosition,
   maxPrefixChars: number = 4000,
   maxSuffixChars: number = 1000
 ): { prefix: string; suffix: string; offset: number } {

@@ -1,31 +1,31 @@
-import type * as Monaco from "monaco-editor"
-import type { CompletionRequest, LLMClient } from "../types"
+import type {
+  CompletionRequest,
+  InlineCompletionsProviderCompat,
+  LLMClient,
+  MonacoCancellationToken,
+  MonacoDisposable,
+  MonacoStandaloneEditor,
+  MonacoInlineCompletion,
+  MonacoInlineCompletionContext,
+  MonacoInlineCompletions,
+  MonacoModel,
+  MonacoNamespace,
+  MonacoPosition,
+} from "../types"
 import { debounce, extractContext } from "../utils"
-
-type MonacoModule = typeof import("monaco-editor")
-type InlineCompletionsProviderCompat =
-  Monaco.languages.InlineCompletionsProvider & {
-    // Monaco has changed this API across versions; accept both when present.
-    freeInlineCompletions?: (
-      completions: Monaco.languages.InlineCompletions,
-    ) => void
-    disposeInlineCompletions?: (
-      completions: Monaco.languages.InlineCompletions,
-    ) => void
-  }
 
 export class InlineCompletionProvider {
   private lastSuggestion: string | null = null
-  private disposables: Monaco.IDisposable[] = []
-  private monaco: MonacoModule
-  private editor: Monaco.editor.IStandaloneCodeEditor
+  private disposables: MonacoDisposable[] = []
+  private monaco: MonacoNamespace
+  private editor: MonacoStandaloneEditor
   private llmClient: LLMClient
   private debounceMs: number
   private isEnabled: boolean = true
 
   constructor(
-    monaco: MonacoModule,
-    editor: Monaco.editor.IStandaloneCodeEditor,
+    monaco: MonacoNamespace,
+    editor: MonacoStandaloneEditor,
     llmClient: LLMClient,
     debounceMs: number = 250,
   ) {
@@ -53,8 +53,8 @@ export class InlineCompletionProvider {
   }
 
   private createInlineCompletionResult(
-    items: Monaco.languages.InlineCompletion[],
-  ): Monaco.languages.InlineCompletions {
+    items: MonacoInlineCompletion[],
+  ): MonacoInlineCompletions {
     return {
       items,
       enableForwardStability: true,
@@ -68,11 +68,15 @@ export class InlineCompletionProvider {
     const languageId = model.getLanguageId()
     const providerImpl: InlineCompletionsProviderCompat = {
       provideInlineCompletions: async (
-        model: Monaco.editor.ITextModel,
-        position: Monaco.Position,
-        context: Monaco.languages.InlineCompletionContext,
-        token: Monaco.CancellationToken,
-      ): Promise<Monaco.languages.InlineCompletions> => {
+        model: MonacoModel,
+        position: MonacoPosition,
+        context: MonacoInlineCompletionContext,
+        token: MonacoCancellationToken,
+      ): Promise<MonacoInlineCompletions> => {
+        if (model !== this.editor.getModel()) {
+          return this.createInlineCompletionResult([])
+        }
+
         if (!this.isEnabled || !this.lastSuggestion) {
           return this.createInlineCompletionResult([])
         }
@@ -94,14 +98,10 @@ export class InlineCompletionProvider {
           },
         ])
       },
-      freeInlineCompletions: (
-        completions: Monaco.languages.InlineCompletions,
-      ) => {
+      freeInlineCompletions: (completions: MonacoInlineCompletions) => {
         // Compatibility method
       },
-      disposeInlineCompletions: (
-        completions: Monaco.languages.InlineCompletions,
-      ) => {
+      disposeInlineCompletions: (completions: MonacoInlineCompletions) => {
         // Compatibility method
       },
     }

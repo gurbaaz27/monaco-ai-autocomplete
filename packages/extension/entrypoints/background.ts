@@ -55,8 +55,6 @@ async function handleCompletionRequest(
     // Build prompt
     const prompt = buildFIMPrompt(request)
 
-    console.log("Prompt", prompt)
-
     const system = `You are a fill-in-the-middle code completion engine.
 
 You will be given a code PREFIX and a code SUFFIX. Your job is to generate ONLY the code that belongs between them.

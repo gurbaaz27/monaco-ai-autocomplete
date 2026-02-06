@@ -2,6 +2,8 @@ import { MonacoAutocomplete } from "@monaco-autocomplete/core"
 import type {
   CompletionRequest,
   CompletionResponse,
+  MonacoStandaloneEditor,
+  MonacoNamespace,
 } from "@monaco-autocomplete/core"
 
 export default defineUnlistedScript(() => {
@@ -18,13 +20,16 @@ export default defineUnlistedScript(() => {
     })
 })
 
-async function waitForMonaco(timeout: number = 15000): Promise<any> {
+async function waitForMonaco(
+  timeout: number = 15000,
+): Promise<MonacoNamespace> {
   const startTime = Date.now()
 
   return new Promise((resolve, reject) => {
     const check = () => {
-      if ((window as any).monaco) {
-        resolve((window as any).monaco)
+      const win = window as any
+      if (win.monaco) {
+        resolve(win.monaco as MonacoNamespace)
         return
       }
 
@@ -40,7 +45,7 @@ async function waitForMonaco(timeout: number = 15000): Promise<any> {
   })
 }
 
-async function initializeAutocomplete(monaco: any): Promise<void> {
+async function initializeAutocomplete(monaco: MonacoNamespace): Promise<void> {
   // Find all Monaco editors
   const editors = await findMonacoEditors(monaco)
   console.log(`Found ${editors.length} Monaco editor(s)`)
@@ -53,13 +58,15 @@ async function initializeAutocomplete(monaco: any): Promise<void> {
   observeNewEditors(monaco)
 }
 
-async function findMonacoEditors(monaco: any): Promise<any[]> {
-  const editors: any[] = []
+async function findMonacoEditors(
+  monaco: MonacoNamespace,
+): Promise<MonacoStandaloneEditor[]> {
+  const editors: MonacoStandaloneEditor[] = []
 
   // Method 1: monaco.editor.getEditors()
   if (monaco.editor?.getEditors) {
     const editorList = monaco.editor.getEditors()
-    editors.push(...editorList)
+    editors.push(...(editorList as MonacoStandaloneEditor[]))
   }
 
   // Method 2: DOM traversal (fallback)
@@ -76,7 +83,7 @@ async function findMonacoEditors(monaco: any): Promise<any[]> {
   return editors
 }
 
-function getEditorFromDomNode(domNode: Element): any {
+function getEditorFromDomNode(domNode: Element): MonacoStandaloneEditor | null {
   // Monaco stores editor instance on DOM node
   const anyNode = domNode as any
 
@@ -95,7 +102,10 @@ function getEditorFromDomNode(domNode: Element): any {
   return null
 }
 
-function setupEditor(monaco: any, editor: any): void {
+function setupEditor(
+  monaco: MonacoNamespace,
+  editor: MonacoStandaloneEditor,
+): void {
   console.log("Setting up autocomplete for editor")
 
   const autocomplete = new MonacoAutocomplete({
@@ -109,7 +119,10 @@ function setupEditor(monaco: any, editor: any): void {
     },
   })
 
-  autocomplete.enable()
+  const enabled = autocomplete.enable()
+  if (!enabled) {
+    return
+  }
 
   // Store reference for cleanup
   ;(editor as any)._monacoAutocomplete = autocomplete
@@ -140,8 +153,10 @@ async function sendCompletionRequest(
         cleanup()
 
         if (event.data.error) {
+          console.error("Completion response error", event.data.error)
           reject(new Error(event.data.error))
         } else {
+          console.log("Completion response received", event.data.payload)
           resolve(event.data.payload)
         }
       }
@@ -168,7 +183,7 @@ async function sendCompletionRequest(
   })
 }
 
-function observeNewEditors(monaco: any): void {
+function observeNewEditors(monaco: MonacoNamespace): void {
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {
       mutation.addedNodes.forEach((node) => {

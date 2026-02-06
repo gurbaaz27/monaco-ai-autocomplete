@@ -1,9 +1,12 @@
 {
   "name": "@monaco-autocomplete/core",
   "version": "0.1.0",
-  "type": "module",
   "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "dependencies": {},
+  "devDependencies": {
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,12 +21,9 @@
     "build": "tsup",
     "dev": "tsup --watch"
   },
-  "dependencies": {},
+  "type": "module",
+  "types": "./dist/index.d.ts",
   "peerDependencies": {
-    "monaco-editor": ">=0.45.0"
-  },
-  "devDependencies": {
-    "tsup": "^8.0.1",
-    "typescript": "^5.3.3"
+    "monaco-editor": "^0.55.1"
   }
 }
