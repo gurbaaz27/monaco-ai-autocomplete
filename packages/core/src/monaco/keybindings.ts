@@ -55,7 +55,7 @@ export class KeybindingManager {
     })
 
     // 1) Only commit inline suggestion when it is visible
-    const tabCommit = this.editor.addCommand(
+    this.editor.addCommand(
       this.monaco.KeyCode.Tab,
       () => {
         this.getFocusedEditor().trigger(
@@ -63,39 +63,27 @@ export class KeybindingManager {
           "editor.action.inlineSuggest.commit",
           {},
         )
+        this.completionProvider.clearSuggestion("autocomplete")
       },
       "inlineSuggestionVisible",
     )
-    if (tabCommit) {
-      // Monaco does not expose a command-dispose API; keep a placeholder disposable
-      this.disposables.push({ dispose: () => {} })
-    }
 
     // 2) For all other cases, fall back to the default tab / indent behaviour
-    const tabDefault = this.editor.addCommand(
+    this.editor.addCommand(
       this.monaco.KeyCode.Tab,
       () => {
         this.getFocusedEditor().trigger("keyboard", "tab", {})
       },
       "!inlineSuggestionVisible",
     )
-    if (tabDefault) {
-      this.disposables.push({ dispose: () => {} })
-    }
 
     // Escape: Clear suggestion
-    const escapeAction = this.editor.addCommand(
-      this.monaco.KeyCode.Escape,
-      () => {
-        this.completionProvider.clearSuggestion()
-      },
-    )
-    if (escapeAction) {
-      this.disposables.push({ dispose: () => {} })
-    }
+    this.editor.addCommand(this.monaco.KeyCode.Escape, () => {
+      this.completionProvider.clearSuggestion("keyboard")
+    })
 
     // Ctrl+K: Manual trigger
-    const triggerAction = this.editor.addCommand(
+    this.editor.addCommand(
       this.monaco.KeyMod.CtrlCmd | this.monaco.KeyCode.KeyK,
       () => {
         this.getFocusedEditor().trigger(
@@ -105,8 +93,5 @@ export class KeybindingManager {
         )
       },
     )
-    if (triggerAction) {
-      this.disposables.push({ dispose: () => {} })
-    }
   }
 }

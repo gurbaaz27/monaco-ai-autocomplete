@@ -14,6 +14,17 @@ import type {
 } from "../types"
 import { debounce, extractContext } from "../utils"
 
+function isCancellationError(error: unknown): boolean {
+  if (error instanceof Error) {
+    return (
+      error.message === "Canceled" ||
+      error.name === "Canceled" ||
+      error.name === "AbortError"
+    )
+  }
+  return String(error) === "Canceled"
+}
+
 export class InlineCompletionProvider {
   private lastSuggestion: string | null = null
   private disposables: MonacoDisposable[] = []
@@ -27,7 +38,7 @@ export class InlineCompletionProvider {
     monaco: MonacoNamespace,
     editor: MonacoStandaloneEditor,
     llmClient: LLMClient,
-    debounceMs: number = 250,
+    debounceMs: number = 800,
   ) {
     this.monaco = monaco
     this.editor = editor
@@ -73,30 +84,33 @@ export class InlineCompletionProvider {
         context: MonacoInlineCompletionContext,
         token: MonacoCancellationToken,
       ): Promise<MonacoInlineCompletions> => {
-        if (model !== this.editor.getModel()) {
+        try {
+          if (model !== this.editor.getModel()) {
+            return this.createInlineCompletionResult([])
+          }
+
+          if (!this.isEnabled || !this.lastSuggestion) {
+            return this.createInlineCompletionResult([])
+          }
+
+          if (token.isCancellationRequested) {
+            return this.createInlineCompletionResult([])
+          }
+
+          return this.createInlineCompletionResult([
+            {
+              insertText: this.lastSuggestion,
+              range: new this.monaco.Range(
+                position.lineNumber,
+                position.column,
+                position.lineNumber,
+                position.column,
+              ),
+            },
+          ])
+        } catch {
           return this.createInlineCompletionResult([])
         }
-
-        if (!this.isEnabled || !this.lastSuggestion) {
-          return this.createInlineCompletionResult([])
-        }
-
-        if (token.isCancellationRequested) {
-          console.log("Cancellation requested")
-          return this.createInlineCompletionResult([])
-        }
-
-        return this.createInlineCompletionResult([
-          {
-            insertText: this.lastSuggestion,
-            range: new this.monaco.Range(
-              position.lineNumber,
-              position.column,
-              position.lineNumber,
-              position.column,
-            ),
-          },
-        ])
       },
       freeInlineCompletions: (completions: MonacoInlineCompletions) => {
         // Compatibility method
@@ -115,10 +129,11 @@ export class InlineCompletionProvider {
   }
 
   private registerChangeListener(): void {
-    const debouncedFetch = debounce(
-      this.fetchCompletion.bind(this),
-      this.debounceMs,
-    )
+    const debouncedFetch = debounce(() => {
+      void this.fetchCompletion().catch(() => {
+        // Swallow so debounced fire-and-forget never leaves an uncaught rejection
+      })
+    }, this.debounceMs)
 
     const listener = this.editor.onDidChangeModelContent(() => {
       if (!this.editor.hasTextFocus()) return
@@ -163,12 +178,15 @@ export class InlineCompletionProvider {
         this.lastSuggestion = null
       }
     } catch (error) {
-      console.error("Failed to fetch completion:", error)
       this.lastSuggestion = null
+      if (!isCancellationError(error)) {
+        console.error("Failed to fetch completion:", error)
+      }
     }
   }
 
-  clearSuggestion(): void {
+  clearSuggestion(source: "keyboard" | "autocomplete"): void {
     this.lastSuggestion = null
+    this.editor.trigger(source, "editor.action.inlineSuggest.hide", {})
   }
 }

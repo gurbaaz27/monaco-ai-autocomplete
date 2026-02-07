@@ -113,7 +113,7 @@ function setupEditor(
     editor,
     llmClient: createLLMClient(),
     config: {
-      debounceMs: 250,
+      debounceMs: 800,
       maxTokens: 128,
       temperature: 0.2,
     },
